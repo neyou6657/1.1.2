@@ -1,5 +1,94 @@
 # 更新日志 (Changelog)
 
+## [1.2.0] - 2024-11-19
+
+### 新增 (Added)
+
+- 🚀 **UCI Provider**: OpenSSL Provider实现（重大功能！）
+  - 基于UCI实现的OpenSSL 3.0 Provider
+  - 支持所有UCI算法通过OpenSSL API调用
+  - 包含签名算法（Dilithium, Falcon）和KEM算法（Kyber）
+  - 可直接用于nginx、Apache等应用
+  - 文件：`src/uci_provider*.c`, `include/uci_provider.h`
+
+- 📖 **部署指南**: 完整的部署文档
+  - `docs/deployment_guide.md`: 详细的安装和配置指南
+  - Nginx配置示例和证书生成脚本
+  - 客户端使用示例
+  - 故障排除和性能优化建议
+
+- 🔧 **部署示例**: 实际配置文件
+  - `examples/deployment/nginx/nginx.conf`: Nginx配置示例
+  - `examples/deployment/nginx/generate_certs.sh`: 证书生成脚本
+  - `examples/deployment/openssl.cnf`: OpenSSL配置示例
+
+- ⚙️ **CMake增强**: Provider构建支持
+  - `BUILD_PROVIDER` 编译选项
+  - 自动检测OpenSSL Provider安装路径
+  - 自动安装Provider到正确位置
+
+### 改进 (Improved)
+
+- 🎯 **双模式架构**: UCI Core + UCI Provider
+  - 模式1：直接调用UCI API（独立模式）
+  - 模式2：通过OpenSSL API（兼容模式）
+  - 保持独立性同时增强实用性
+
+- 📚 **文档完善**: 更新所有文档
+  - 说明双层架构的设计理由
+  - 提供完整的部署流程
+  - 增加实际应用场景示例
+
+### 技术亮点
+
+#### 为什么要实现Provider？
+
+虽然UCI Core保持独立性，但Provider层提供了实际部署价值：
+
+**UCI Core的价值**：
+- 毕设核心：展示统一接口设计能力
+- 独立性：不依赖特定密码库版本
+- 学术价值：接口抽象和适配能力
+
+**UCI Provider的价值**：
+- 工程价值：可直接用于生产环境
+- 兼容性：现有OpenSSL应用无需修改
+- 实用性：真正的"抗量子迁移"方案
+
+#### 与oqs-provider的区别
+
+| 特性 | oqs-provider | UCI Provider |
+|------|-------------|--------------|
+| 底层库 | 仅LibOQS | OpenSSL + LibOQS + GmSSL |
+| 国密支持 | ❌ 无 | ✅ 有（SM2/SM3/SM4） |
+| 独立接口 | ❌ 无 | ✅ 有（UCI API） |
+| 混合算法 | 部分支持 | ✅ 完整支持 |
+
+### 使用示例
+
+#### 通过UCI API（独立模式）
+```c
+#include "unified_crypto_interface.h"
+uci_init();
+uci_keygen(UCI_ALG_DILITHIUM2, &keypair);
+uci_sign(&keypair, message, len, &sig);
+```
+
+#### 通过OpenSSL API（Provider模式）
+```c
+#include <openssl/evp.h>
+EVP_PKEY *pkey = EVP_PKEY_Q_keygen(NULL, NULL, "dilithium2");
+// 使用标准OpenSSL API...
+```
+
+#### Nginx部署
+```nginx
+ssl_ecdh_curve X25519Kyber768:kyber768:X25519;
+ssl_protocols TLSv1.3;
+```
+
+---
+
 ## [1.1.0] - 2024-11-19
 
 ### 新增 (Added)

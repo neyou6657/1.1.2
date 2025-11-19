@@ -7,6 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 option(USE_OPENSSL "Build with OpenSSL support" ON)
 option(USE_LIBOQS "Build with LibOQS support" ON)
 option(USE_GMSSL "Build with GmSSL support" ON)
+option(BUILD_PROVIDER "Build OpenSSL Provider" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
 option(BUILD_TESTS "Build test programs" ON)
 
@@ -76,6 +77,38 @@ set_target_properties(uci_static PROPERTIES OUTPUT_NAME uci)
 
 target_link_libraries(uci ${CRYPTO_LIBS})
 target_link_libraries(uci_static ${CRYPTO_LIBS})
+
+if(BUILD_PROVIDER AND USE_OPENSSL AND OPENSSL_FOUND)
+    set(UCI_PROVIDER_SOURCES
+        src/uci_provider.c
+        src/uci_provider_sig.c
+        src/uci_provider_kem.c
+        src/uci_provider_keymgmt.c
+    )
+    
+    add_library(uciprovider MODULE ${UCI_PROVIDER_SOURCES})
+    target_link_libraries(uciprovider uci ${CRYPTO_LIBS})
+    set_target_properties(uciprovider PROPERTIES 
+        PREFIX ""
+        OUTPUT_NAME "uci"
+    )
+    
+    execute_process(
+        COMMAND ${OPENSSL_EXECUTABLE} version -d
+        OUTPUT_VARIABLE OPENSSL_DIR_OUTPUT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    
+    string(REGEX REPLACE "^OPENSSLDIR: \"(.*)\"$" "\\1" OPENSSL_DIR "${OPENSSL_DIR_OUTPUT}")
+    set(PROVIDER_INSTALL_DIR "${OPENSSL_DIR}/ossl-modules" CACHE PATH "OpenSSL provider install directory")
+    
+    message(STATUS "OpenSSL Provider will be built")
+    message(STATUS "Provider install directory: ${PROVIDER_INSTALL_DIR}")
+    
+    install(TARGETS uciprovider
+        LIBRARY DESTINATION ${PROVIDER_INSTALL_DIR}
+    )
+endif()
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)

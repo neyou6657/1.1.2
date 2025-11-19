@@ -377,6 +377,125 @@ uci_keygen(UCI_ALG_DILITHIUM2, &keypair);
 uci_keygen(UCI_ALG_HYBRID_RSA_DILITHIUM, &keypair);
 ```
 
+## UCI Provider - OpenSSL集成
+
+### 什么是UCI Provider？
+
+UCI Provider是基于UCI实现的OpenSSL 3.0 Provider，它让你可以通过**标准OpenSSL API**使用UCI的所有算法。
+
+### 双模式使用
+
+#### 模式1: 直接使用UCI API（推荐用于新项目）
+
+```c
+#include "unified_crypto_interface.h"
+
+uci_init();
+uci_keypair_t keypair;
+uci_keygen(UCI_ALG_DILITHIUM2, &keypair);
+uci_sign(&keypair, message, len, &signature);
+uci_cleanup();
+```
+
+**优点**：独立、简洁、不依赖OpenSSL版本
+
+#### 模式2: 通过OpenSSL Provider（推荐用于现有项目迁移）
+
+```c
+#include <openssl/evp.h>
+
+// UCI Provider自动加载，无需修改应用代码
+EVP_PKEY *pkey = EVP_PKEY_Q_keygen(NULL, NULL, "dilithium2");
+EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+EVP_DigestSignInit(ctx, NULL, NULL, NULL, pkey);
+// 使用标准OpenSSL API...
+```
+
+**优点**：兼容现有OpenSSL应用，无需修改代码
+
+### 实际部署：Nginx示例
+
+#### 1. 安装UCI Provider
+
+```bash
+cd build
+cmake -DBUILD_PROVIDER=ON ..
+make
+sudo make install
+```
+
+Provider将安装到：`/usr/local/lib/ossl-modules/uci.so`
+
+#### 2. 配置OpenSSL
+
+编辑 `/etc/ssl/openssl.cnf`：
+
+```ini
+[provider_sect]
+uci = uci_sect
+
+[uci_sect]
+activate = 1
+```
+
+#### 3. 生成抗量子证书
+
+```bash
+# 使用Dilithium2生成证书
+cd examples/deployment/nginx
+./generate_certs.sh
+```
+
+#### 4. 配置Nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    
+    ssl_certificate /path/to/server.crt;
+    ssl_certificate_key /path/to/server.key;
+    
+    # 启用抗量子密钥交换
+    ssl_ecdh_curve X25519Kyber768:kyber768:X25519;
+    ssl_protocols TLSv1.3;
+}
+```
+
+#### 5. 测试连接
+
+```bash
+curl --curves kyber768 https://your-domain.com
+```
+
+详见：[部署指南](docs/deployment_guide.md)
+
+### Provider支持的算法
+
+通过Provider，OpenSSL应用可以使用：
+
+**数字签名**：
+- `dilithium2`, `dilithium3`, `dilithium5`
+- `falcon512`
+- （未来：`sphincs-sha256-128f` 等）
+
+**KEM（密钥封装）**：
+- `kyber512`, `kyber768`, `kyber1024`
+- （未来：`ntru-hps2048509` 等）
+
+**TLS组（混合算法）**：
+- `X25519Kyber768` - 经典+抗量子混合
+
+### 验证Provider安装
+
+```bash
+# 检查Provider是否加载
+openssl list -providers
+
+# 查看可用算法
+openssl list -signature-algorithms -provider uci
+openssl list -kem-algorithms -provider uci
+```
+
 ## API参考
 
 ### 初始化与清理
