@@ -4,6 +4,7 @@ project(UnifiedCryptoInterface VERSION 1.0.0 LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+option(USE_OPENSSL "Build with OpenSSL support" ON)
 option(USE_LIBOQS "Build with LibOQS support" ON)
 option(USE_GMSSL "Build with GmSSL support" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
@@ -14,10 +15,24 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 set(UCI_SOURCES
     src/unified_crypto_interface.c
     src/algorithm_registry.c
+    src/openssl_adapter.c
     src/classic_crypto_adapter.c
     src/pqc_adapter.c
     src/hybrid_crypto.c
 )
+
+if(USE_OPENSSL)
+    find_package(OpenSSL)
+    
+    if(OPENSSL_FOUND)
+        message(STATUS "Found OpenSSL: ${OPENSSL_VERSION}")
+        include_directories(${OPENSSL_INCLUDE_DIR})
+        add_definitions(-DHAVE_OPENSSL)
+        set(CRYPTO_LIBS ${CRYPTO_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+    else()
+        message(WARNING "OpenSSL not found, building without OpenSSL support")
+    endif()
+endif()
 
 if(USE_LIBOQS)
     find_path(LIBOQS_INCLUDE_DIR oqs/oqs.h

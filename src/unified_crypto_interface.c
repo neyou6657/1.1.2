@@ -1,5 +1,6 @@
 #include "unified_crypto_interface.h"
 #include "algorithm_registry.h"
+#include "openssl_adapter.h"
 #include "classic_crypto_adapter.h"
 #include "pqc_adapter.h"
 #include "hybrid_crypto.h"
@@ -14,8 +15,15 @@ int uci_init(void) {
         return ret;
     }
     
+    ret = openssl_adapter_init();
+    if (ret != UCI_SUCCESS) {
+        registry_cleanup();
+        return ret;
+    }
+    
     ret = classic_adapter_init();
     if (ret != UCI_SUCCESS) {
+        openssl_adapter_cleanup();
         registry_cleanup();
         return ret;
     }
@@ -23,6 +31,7 @@ int uci_init(void) {
     ret = pqc_adapter_init();
     if (ret != UCI_SUCCESS) {
         classic_adapter_cleanup();
+        openssl_adapter_cleanup();
         registry_cleanup();
         return ret;
     }
@@ -31,6 +40,7 @@ int uci_init(void) {
     if (ret != UCI_SUCCESS) {
         pqc_adapter_cleanup();
         classic_adapter_cleanup();
+        openssl_adapter_cleanup();
         registry_cleanup();
         return ret;
     }
@@ -42,6 +52,7 @@ int uci_cleanup(void) {
     hybrid_adapter_cleanup();
     pqc_adapter_cleanup();
     classic_adapter_cleanup();
+    openssl_adapter_cleanup();
     registry_cleanup();
     return UCI_SUCCESS;
 }

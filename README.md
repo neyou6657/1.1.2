@@ -319,6 +319,63 @@ int main() {
 - [详细技术文档](README_UCI.md) - 完整的API参考和使用指南
 - [架构设计文档](docs/architecture.md) - 系统架构和设计决策
 - [接口差异性分析](docs/interface_analysis.md) - 不同密码库接口对比分析
+- [设计决策文档](docs/design_decisions.md) - 关键设计决策和理由说明
+
+## 设计亮点
+
+### 1. 独立接口层架构
+
+本项目**没有选择**基于OpenSSL Provider的方案（如oqs-provider），而是设计了**独立的统一接口层**：
+
+- ✅ **参考借鉴**：借鉴oqs-provider的算法注册机制和GmSSL兼容层的适配思路
+- ✅ **保持独立**：不依赖特定OpenSSL版本，提供独立的UCI API
+- ✅ **多库集成**：同时支持OpenSSL、LibOQS、GmSSL等多个密码库
+- ✅ **算法敏捷**：可以在运行时动态选择和切换算法
+
+**为什么不用OpenSSL Provider？**
+1. 毕设重点是"统一接口设计"，而不是OpenSSL扩展
+2. 需要展示对多种密码库的抽象能力
+3. OpenSSL Provider限制了灵活性和扩展性
+4. 许多系统仍在使用OpenSSL 1.x或没有OpenSSL
+
+详见：[设计决策文档](docs/design_decisions.md)
+
+### 2. 三层适配器架构
+
+```
+应用层 (统一的UCI API)
+    ↓
+算法注册层 (动态注册与查询)
+    ↓
+适配器层
+    ├── OpenSSL适配器 (RSA, ECDSA)
+    ├── GmSSL适配器 (SM2, SM3, SM4)
+    ├── LibOQS适配器 (Dilithium, Kyber等)
+    └── 混合适配器 (Hybrid schemes)
+    ↓
+底层密码库
+```
+
+### 3. 统一的数据格式
+
+所有算法使用统一的数据结构：
+- 密钥：DER编码的字节数组
+- 签名：带算法标识的字节数组
+- 混合密钥/签名：串联格式，对应用透明
+
+### 4. 算法敏捷性
+
+运行时动态选择算法，无需重新编译：
+```c
+// 当前使用RSA
+uci_keygen(UCI_ALG_RSA2048, &keypair);
+
+// 轻松切换到抗量子算法
+uci_keygen(UCI_ALG_DILITHIUM2, &keypair);
+
+// 或使用混合方案
+uci_keygen(UCI_ALG_HYBRID_RSA_DILITHIUM, &keypair);
+```
 
 ## API参考
 
