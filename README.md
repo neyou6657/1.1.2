@@ -66,6 +66,26 @@ brew install openssl@3
 
 安装完成后，可通过 `openssl version` 验证。
 
+### OpenSSL 在 UCI 中的角色
+
+1. **经典算法引擎（静态链接）**：编译 UCI 时，`src/openssl_adapter.c` 会直接链接系统 OpenSSL 的 EVP 接口，提供 RSA-2048/3072/4096、ECDSA-P256/P384 等经典算法能力。应用层通过 `uci_keygen(UCI_ALG_RSA2048, …)` 这类统一 API 调用时，底层实际由 OpenSSL 完成密钥生成与签名。
+2. **Provider 宿主（运行时透传）**：启用 `-DBUILD_PROVIDER=ON` 后，会生成 `uci.so` OpenSSL Provider。把它加入 `openssl.cnf`（或使用 `OPENSSL_MODULES` 环境变量）即可在标准 `openssl` 命令中直接调用 UCI 算法，如 `openssl req -new -newkey dilithium2 ...`。
+
+快速验证：
+
+```bash
+# 编译并启用 Provider
+cmake -DUSE_OPENSSL=ON -DBUILD_PROVIDER=ON ..
+make -j && sudo make install
+
+# 列出 Provider 并检查算法
+openssl list -providers
+openssl list -signature-algorithms -provider uci
+openssl list -kem-algorithms -provider uci
+```
+
+完成上述操作后，即可继续按照下文的构建流程或 `docs/deployment_guide.md` 中的 Nginx/curl 示例进行端到端测试。
+
 ### 构建项目
 
 #### 方法1: 使用自动构建脚本（推荐）

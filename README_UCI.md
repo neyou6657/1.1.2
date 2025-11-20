@@ -128,6 +128,21 @@ brew install openssl@3
 
 安装完成后，可通过 `openssl version` 确认环境，若使用自定义安装路径，可在 CMake 配置时添加 `-DOPENSSL_ROOT_DIR=/path/to/openssl`。
 
+#### OpenSSL 在 UCI 中的作用
+
+- **经典算法适配器**：`src/openssl_adapter.c` 直接链接 OpenSSL 的 EVP API，提供 RSA、ECDSA 等经典算法。只要在 CMake 中保持 `-DUSE_OPENSSL=ON`，UCI 的 `uci_keygen/uci_sign` 等 API 会自动调用 OpenSSL 完成实际运算。
+- **OpenSSL Provider**：启用 `-DBUILD_PROVIDER=ON` 后会生成 `uci.so` Provider 模块，安装到 `${OPENSSLDIR}/ossl-modules`。把它写入 `openssl.cnf` 或通过 `OPENSSL_MODULES`、`OSSL_PROVIDER` 环境变量加载后，就能用标准 `openssl` 命令访问 UCI 的 Dilithium/Kyber/Hybrid 算法。
+
+快速检查命令：
+
+```bash
+openssl list -providers
+openssl list -signature-algorithms -provider uci
+openssl list -kem-algorithms -provider uci
+```
+
+更多基于 Provider 的证书、Nginx、curl 示例详见 `docs/deployment_guide.md`。
+
 ### 编译步骤
 
 #### 1. 编译LibOQS (如需抗量子算法支持)
