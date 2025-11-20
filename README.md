@@ -23,6 +23,7 @@
 - GCC 或 Clang 编译器
 - CMake 3.10+ 或 Make
 - Git
+- OpenSSL 1.1.1+（推荐 3.0+）以及对应的开发包（如 `libssl-dev`、`openssl-devel`）
 
 ### 克隆项目
 
@@ -44,6 +45,26 @@ git clone --depth 1 https://github.com/guanzhi/GmSSL.git
 
 cd ..
 ```
+
+### 安装 OpenSSL（系统级依赖）
+
+UCI 默认使用操作系统提供的 OpenSSL，因此仓库中不会再额外拷贝 `libs/openssl` 目录。请确保系统已经安装 OpenSSL 及其开发头文件：
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install openssl libssl-dev
+
+# CentOS/RHEL
+sudo yum install openssl openssl-devel
+
+# macOS (Homebrew)
+brew install openssl@3
+```
+
+> 如果你是通过源码自定义安装 OpenSSL，可以在 CMake 配置时使用 `-DOPENSSL_ROOT_DIR=/path/to/openssl` 指定安装目录。
+
+安装完成后，可通过 `openssl version` 验证。
 
 ### 构建项目
 
@@ -590,7 +611,7 @@ const char *uci_get_error_string(int error_code);
 
 - **LibOQS** (可选): 提供抗量子密码算法
 - **GmSSL** (可选): 提供国密算法
-- **OpenSSL** (可选): 提供经典密码算法
+- **OpenSSL** (默认启用，可通过 `-DUSE_OPENSSL=OFF` 禁用): 提供经典密码算法与Provider功能
 
 ### 编译依赖
 

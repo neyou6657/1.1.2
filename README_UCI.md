@@ -106,8 +106,27 @@
 
 - CMake 3.10+
 - GCC 或 Clang 编译器
+- OpenSSL 1.1.1+（推荐 3.0+，用于经典算法与Provider功能）
 - LibOQS (可选，用于抗量子算法支持)
 - GmSSL (可选，用于国密算法支持)
+
+#### 安装 OpenSSL
+
+UCI 依赖系统级的 OpenSSL，请使用包管理器安装对应的运行库和开发头文件：
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install openssl libssl-dev
+
+# CentOS/RHEL
+sudo yum install openssl openssl-devel
+
+# macOS (Homebrew)
+brew install openssl@3
+```
+
+安装完成后，可通过 `openssl version` 确认环境，若使用自定义安装路径，可在 CMake 配置时添加 `-DOPENSSL_ROOT_DIR=/path/to/openssl`。
 
 ### 编译步骤
 
