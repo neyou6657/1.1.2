@@ -86,6 +86,65 @@ openssl list -kem-algorithms -provider uci
 
 完成上述操作后，即可继续按照下文的构建流程或 `docs/deployment_guide.md` 中的 Nginx/curl 示例进行端到端测试。
 
+#### Provider 快速上手（命令行）
+
+1. `sudo apt install openssl libssl-dev`（或使用对应发行版的包管理器）。
+2. `mkdir build && cd build && cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON ..`
+3. `make -j && sudo make install` —— 会把 `libuci.so` 安装到 `/usr/local/lib`，并将 `uci.so` Provider 安装到 `${OPENSSLDIR}/ossl-modules/`。
+4. 编辑 `/etc/ssl/openssl.cnf`，加入：
+   ```ini
+   openssl_conf = openssl_init
+
+   [openssl_init]
+   providers = provider_sect
+
+   [provider_sect]
+   default = default_sect
+   uci = uci_sect
+
+   [uci_sect]
+   activate = 1
+   ```
+5. 重新打开终端后运行 `openssl list -providers`、`openssl list -kem-algorithms -provider uci`，确认 `uci` Provider 生效。
+
+#### C 语言示例：Kyber768 KEM
+
+安装完成后，UCI 会额外安装头文件 `<openssl/oqs.h>`，对 OpenSSL 3.0 的 KEM API 做了一层薄封装，方便直接在 C 程序里调用 UCI Provider。下面的示例演示如何只用几行代码就完成 Kyber768 的封装/解封装：
+
+```c
+#include <openssl/oqs.h>
+
+int main(void) {
+    EVP_PKEY *keypair = NULL;
+    unsigned char *ct = NULL, *ss_enc = NULL, *ss_dec = NULL;
+    size_t ct_len = 0, ss_enc_len = 0, ss_dec_len = 0;
+
+    oqs_provider_load();
+    oqs_kem_keygen(OQS_KEM_KYBER768, &keypair);
+    oqs_kem_encapsulate(keypair, &ct, &ct_len, &ss_enc, &ss_enc_len);
+    oqs_kem_decapsulate(keypair, ct, ct_len, &ss_dec, &ss_dec_len);
+    /* 比较 shared secret …… */
+}
+```
+
+无需手动操作 OpenSSL EVP_CTX/OSSL_PARAM，即可得到完整的密钥协商流程。自定义程序可以直接编译链接 `libuci`：
+
+```bash
+cc kyber_app.c -o kyber_app -luci -lcrypto
+```
+
+我们在仓库中提供了可直接运行的示例：
+
+```bash
+mkdir build && cd build
+cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON -DBUILD_EXAMPLES=ON ..
+make uci_provider_kem_demo
+sudo make install  # 确保 uci.so 安装到 ${OPENSSLDIR}/ossl-modules
+./examples/uci_provider_kem_demo
+```
+
+如果不希望立即安装，可以在运行前设置 `OPENSSL_MODULES=$(pwd)`，让 OpenSSL 从当前构建目录加载 `uci.so`。
+
 ### 构建项目
 
 #### 方法1: 使用自动构建脚本（推荐）

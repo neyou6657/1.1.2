@@ -274,6 +274,45 @@ response = urllib.request.urlopen('https://example.com', context=context)
 print(response.read())
 ```
 
+### C 客户端（oqs.h 便捷封装）
+
+安装 UCI Provider 后，会自动安装 `<openssl/oqs.h>`，可以直接在 C 程序中加载 Provider 并调用 Kyber/Dilithium 等算法：
+
+```c
+#include <openssl/oqs.h>
+
+int main(void) {
+    EVP_PKEY *keypair = NULL;
+    unsigned char *ct = NULL, *ss_enc = NULL, *ss_dec = NULL;
+    size_t ct_len = 0, ss_enc_len = 0, ss_dec_len = 0;
+
+    if (!oqs_provider_load()) {
+        return 1;
+    }
+
+    if (!oqs_kem_keygen(OQS_KEM_KYBER768, &keypair)) {
+        return 1;
+    }
+
+    oqs_kem_encapsulate(keypair, &ct, &ct_len, &ss_enc, &ss_enc_len);
+    oqs_kem_decapsulate(keypair, ct, ct_len, &ss_dec, &ss_dec_len);
+    /* … */
+    return 0;
+}
+```
+
+编译命令示例：`cc my_kem.c -o my_kem -luci -lcrypto`
+
+示例程序 `examples/provider/kyber_kem_demo.c` 已经集成在仓库中：
+
+```bash
+mkdir build && cd build
+cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON -DBUILD_EXAMPLES=ON ..
+make uci_provider_kem_demo
+sudo make install  # 或设置 OPENSSL_MODULES 指向 build 目录
+./examples/uci_provider_kem_demo
+```
+
 ### OpenSSL s_client测试
 
 ```bash

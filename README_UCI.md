@@ -143,6 +143,59 @@ openssl list -kem-algorithms -provider uci
 
 更多基于 Provider 的证书、Nginx、curl 示例详见 `docs/deployment_guide.md`。
 
+#### Provider 快速上手
+
+1. `sudo apt install openssl libssl-dev` 或使用对应发行版的包管理器。
+2. `mkdir build && cd build && cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON ..`
+3. `make -j && sudo make install`，自动把 `uci.so` 安装到 `${OPENSSLDIR}/ossl-modules`。
+4. 在 `/etc/ssl/openssl.cnf` 中加入：
+   ```ini
+   openssl_conf = openssl_init
+   [openssl_init]
+   providers = provider_sect
+   [provider_sect]
+   default = default_sect
+   uci = uci_sect
+   [uci_sect]
+   activate = 1
+   ```
+5. 执行 `openssl list -providers`、`openssl list -kem-algorithms -provider uci` 验证加载结果。
+
+#### C 语言示例：Kyber768 KEM
+
+安装完成后会得到 `<openssl/oqs.h>` 辅助头文件，封装了 OpenSSL 3.0 的 KEM 流程：
+
+```c
+#include <openssl/oqs.h>
+
+int main(void) {
+    EVP_PKEY *keypair = NULL;
+    unsigned char *ct = NULL, *ss_enc = NULL, *ss_dec = NULL;
+    size_t ct_len = 0, ss_enc_len = 0, ss_dec_len = 0;
+
+    oqs_provider_load();
+    oqs_kem_keygen(OQS_KEM_KYBER768, &keypair);
+    oqs_kem_encapsulate(keypair, &ct, &ct_len, &ss_enc, &ss_enc_len);
+    oqs_kem_decapsulate(keypair, ct, ct_len, &ss_dec, &ss_dec_len);
+}
+```
+
+自定义程序可直接链接 `libuci` 与系统 `libcrypto`：
+
+```bash
+cc kyber_app.c -o kyber_app -luci -lcrypto
+```
+
+编译并运行官方示例：
+
+```bash
+mkdir build && cd build
+cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON -DBUILD_EXAMPLES=ON ..
+make uci_provider_kem_demo
+sudo make install
+./examples/uci_provider_kem_demo
+```
+
 ### 编译步骤
 
 #### 1. 编译LibOQS (如需抗量子算法支持)
