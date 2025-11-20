@@ -1,5 +1,6 @@
 #include "unified_crypto_interface.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int main() {
