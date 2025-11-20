@@ -132,3 +132,39 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+
+# C/C++ Build artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile.bak
+*.log
+
+# Library build directories
+libs/*/build/
+libs/*/bin/
+libs/*/lib/
+libs/*/include/oqs/
+libs/*/include/gmssl/
+
+# Third-party libraries (downloaded separately)
+libs/liboqs/
+libs/GmSSL/
+
+# Test and example binaries
+examples/demo
+examples/list_algorithms
+examples/signature_demo
+examples/kem_demo
+tests/test_*
+!tests/*.c
+!examples/*.c

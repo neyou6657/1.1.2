@@ -1,0 +1,40 @@
+# OpenSSL配置文件 - 启用UCI Provider
+# 复制到 /etc/ssl/openssl.cnf 或设置 OPENSSL_CONF 环境变量
+
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+alg_section = algorithm_sect
+
+[provider_sect]
+default = default_sect
+uci = uci_sect
+
+[default_sect]
+activate = 1
+
+[uci_sect]
+activate = 1
+# UCI Provider提供的算法会自动注册
+
+[algorithm_sect]
+# 默认算法配置
+default_properties = provider=default,provider=uci
+
+# 抗量子算法优先级
+rh-allow-sha1-signatures = yes
+
+# 说明：
+# - default: OpenSSL内置的经典算法
+# - uci: UCI Provider提供的算法（经典+抗量子+混合）
+#
+# 算法选择顺序：
+# 1. 应用指定的算法
+# 2. UCI Provider的算法（如果可用）
+# 3. 降级到default provider的算法
+#
+# 可用的抗量子算法：
+# 签名算法：dilithium2, dilithium3, dilithium5, falcon512
+# KEM算法：kyber512, kyber768, kyber1024
+# 混合算法：X25519Kyber768（通过TLS-GROUP capability）
