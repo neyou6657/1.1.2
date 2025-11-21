@@ -23,6 +23,7 @@
 - GCC 或 Clang 编译器
 - CMake 3.10+ 或 Make
 - Git
+- OpenSSL 1.1.1+（推荐 3.0+）以及对应的开发包（如 `libssl-dev`、`openssl-devel`）
 
 ### 克隆项目
 
@@ -43,6 +44,119 @@ git clone --depth 1 https://github.com/open-quantum-safe/liboqs.git
 git clone --depth 1 https://github.com/guanzhi/GmSSL.git
 
 cd ..
+```
+
+### 安装 OpenSSL（系统级依赖）
+
+UCI 默认使用操作系统提供的 OpenSSL，因此仓库中不会再额外拷贝 `libs/openssl` 目录。请确保系统已经安装 OpenSSL 及其开发头文件：
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install openssl libssl-dev
+
+# CentOS/RHEL
+sudo yum install openssl openssl-devel
+
+# macOS (Homebrew)
+brew install openssl@3
+```
+
+> 如果你是通过源码自定义安装 OpenSSL，可以在 CMake 配置时使用 `-DOPENSSL_ROOT_DIR=/path/to/openssl` 指定安装目录。
+
+安装完成后，可通过 `openssl version` 验证。
+
+### OpenSSL 在 UCI 中的角色
+
+1. **经典算法引擎（静态链接）**：编译 UCI 时，`src/openssl_adapter.c` 会直接链接系统 OpenSSL 的 EVP 接口，提供 RSA-2048/3072/4096、ECDSA-P256/P384 等经典算法能力。应用层通过 `uci_keygen(UCI_ALG_RSA2048, …)` 这类统一 API 调用时，底层实际由 OpenSSL 完成密钥生成与签名。
+2. **Provider 宿主（运行时透传）**：启用 `-DBUILD_PROVIDER=ON` 后，会生成 `uci.so` OpenSSL Provider。把它加入 `openssl.cnf`（或使用 `OPENSSL_MODULES` 环境变量）即可在标准 `openssl` 命令中直接调用 UCI 算法，如 `openssl req -new -newkey dilithium2 ...`。
+
+快速验证：
+
+```bash
+# 编译并启用 Provider
+cmake -DUSE_OPENSSL=ON -DBUILD_PROVIDER=ON ..
+make -j && sudo make install
+
+# 列出 Provider 并检查算法
+openssl list -providers
+openssl list -signature-algorithms -provider uci
+openssl list -kem-algorithms -provider uci
+```
+
+完成上述操作后，即可继续按照下文的构建流程或 `docs/deployment_guide.md` 中的 Nginx/curl 示例进行端到端测试。
+
+#### Provider 快速上手（命令行）
+
+1. `sudo apt install openssl libssl-dev`（或使用对应发行版的包管理器）。
+2. `mkdir build && cd build && cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON ..`
+3. `make -j && sudo make install` —— 会把 `libuci.so` 安装到 `/usr/local/lib`，并将 `uci.so` Provider 安装到 `${OPENSSLDIR}/ossl-modules/`。
+4. 编辑 `/etc/ssl/openssl.cnf`，加入：
+   ```ini
+   openssl_conf = openssl_init
+
+   [openssl_init]
+   providers = provider_sect
+
+   [provider_sect]
+   default = default_sect
+   uci = uci_sect
+
+   [uci_sect]
+   activate = 1
+   ```
+5. 重新打开终端后运行 `openssl list -providers`、`openssl list -kem-algorithms -provider uci`，确认 `uci` Provider 生效。
+
+#### C 语言示例：Kyber768 KEM
+
+安装完成后，UCI 会额外安装头文件 `<openssl/oqs.h>`，对 OpenSSL 3.0 的 KEM API 做了一层薄封装，方便直接在 C 程序里调用 UCI Provider。下面的示例演示如何只用几行代码就完成 Kyber768 的封装/解封装：
+
+```c
+#include <openssl/oqs.h>
+
+int main(void) {
+    EVP_PKEY *keypair = NULL;
+    unsigned char *ct = NULL, *ss_enc = NULL, *ss_dec = NULL;
+    size_t ct_len = 0, ss_enc_len = 0, ss_dec_len = 0;
+
+    oqs_provider_load();
+    oqs_kem_keygen(OQS_KEM_KYBER768, &keypair);
+    oqs_kem_encapsulate(keypair, &ct, &ct_len, &ss_enc, &ss_enc_len);
+    oqs_kem_decapsulate(keypair, ct, ct_len, &ss_dec, &ss_dec_len);
+    /* 比较 shared secret …… */
+}
+```
+
+无需手动操作 OpenSSL EVP_CTX/OSSL_PARAM，即可得到完整的密钥协商流程。自定义程序可以直接编译链接 `libuci`：
+
+```bash
+cc kyber_app.c -o kyber_app -luci -lcrypto
+```
+
+我们在仓库中提供了可直接运行的示例：
+
+```bash
+mkdir build && cd build
+cmake -DUSE_OPENSSL=ON -DUSE_LIBOQS=ON -DBUILD_PROVIDER=ON -DBUILD_EXAMPLES=ON ..
+make uci_provider_kem_demo
+sudo make install  # 确保 uci.so 安装到 ${OPENSSLDIR}/ossl-modules
+./examples/uci_provider_kem_demo
+```
+
+如果不希望立即安装，可以在运行前设置 `OPENSSL_MODULES=$(pwd)`，让 OpenSSL 从当前构建目录加载 `uci.so`。
+
+### 使用 Docker 一键构建与测试
+
+我们提供了 `Dockerfile` 用于在隔离环境中完成依赖安装、克隆 LibOQS/GmSSL、构建 UCI 并执行测试：
+
+```bash
+docker build -t uci-ci .
+```
+
+镜像构建过程中若有任何一步失败（依赖下载、LibOQS/GmSSL 构建、UCI 构建或 `ctest`），Docker 会立即中断，便于快速定位问题。构建完成后可按需进入容器：
+
+```bash
+docker run -it --rm uci-ci
 ```
 
 ### 构建项目
@@ -590,7 +704,7 @@ const char *uci_get_error_string(int error_code);
 
 - **LibOQS** (可选): 提供抗量子密码算法
 - **GmSSL** (可选): 提供国密算法
-- **OpenSSL** (可选): 提供经典密码算法
+- **OpenSSL** (默认启用，可通过 `-DUSE_OPENSSL=OFF` 禁用): 提供经典密码算法与Provider功能
 
 ### 编译依赖
 

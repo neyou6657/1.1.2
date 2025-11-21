@@ -11,6 +11,16 @@ BUILD_LIBOQS=${BUILD_LIBOQS:-1}
 BUILD_GMSSL=${BUILD_GMSSL:-1}
 PROJECT_ROOT=$(pwd)
 
+if ! command -v openssl >/dev/null 2>&1; then
+    echo "Error: OpenSSL command not found."
+    echo "Please install OpenSSL and its development package before building UCI."
+    echo "Examples:"
+    echo "  Ubuntu/Debian: sudo apt install openssl libssl-dev"
+    echo "  CentOS/RHEL:   sudo yum install openssl openssl-devel"
+    echo "  macOS:         brew install openssl@3"
+    exit 1
+fi
+
 if [ "$BUILD_LIBOQS" = "1" ]; then
     echo "Building LibOQS..."
     if [ ! -d "libs/liboqs" ]; then

@@ -1,5 +1,16 @@
 # 更新日志 (Changelog)
 
+## [Unreleased]
+
+### 新增 (Added)
+
+- 🧩 **OpenSSL oqs.h 封装**: 新增 `<openssl/oqs.h>` 头文件与辅助实现，提供 `oqs_provider_load()`、`oqs_kem_keygen()` 等便捷方法，方便 C 程序直接通过 UCI Provider 调用 Kyber/Dilithium 算法。
+- 🧪 **Provider 示例程序**: `examples/provider/kyber_kem_demo.c` 展示如何在用户代码中完成 Kyber768 封装/解封装。
+
+### 改进 (Improved)
+
+- 📚 文档更新：README、README_UCI 以及 `docs/deployment_guide.md` 补充了 Provider 快速上手、`openssl.cnf` 配置示例与 C 语言调用说明。
+
 ## [1.2.0] - 2024-11-19
 
 ### 新增 (Added)

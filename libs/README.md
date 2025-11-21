@@ -31,6 +31,24 @@ GmSSL是一个开源的国密算法库，支持中国商用密码标准。
 - SM3: 哈希算法
 - SM4: 对称加密算法
 
+### OpenSSL (系统级经典算法库)
+
+UCI 的经典算法（RSA/ECDSA）与 Provider 功能依赖系统自带的 OpenSSL，因此仓库中不会额外提供 `libs/openssl` 目录。如果系统中缺少 OpenSSL，请使用包管理器安装运行库与开发头文件：
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install openssl libssl-dev
+
+# CentOS/RHEL
+sudo yum install openssl openssl-devel
+
+# macOS (Homebrew)
+brew install openssl@3
+```
+
+安装后可通过 `openssl version` 验证，若使用自编译的 OpenSSL，请在 CMake 配置时添加 `-DOPENSSL_ROOT_DIR=/path/to/openssl`，或设置 `OPENSSL_ROOT_DIR` 环境变量指向安装路径。
+
 ## 编译步骤
 
 下载后，这些库需要先编译才能被UCI使用。
