@@ -55,36 +55,14 @@ cleanup:
     return ret;
 }
 
-static int oqs_kem_prepare_output(EVP_PKEY_CTX *ctx,
-                                  unsigned char **ciphertext, size_t *ciphertext_len,
-                                  unsigned char **shared_secret, size_t *shared_secret_len) {
-    if (ciphertext == NULL || ciphertext_len == NULL ||
-        shared_secret == NULL || shared_secret_len == NULL) {
-        return 0;
-    }
-
-    if (EVP_PKEY_encapsulate(ctx, NULL, ciphertext_len, NULL, shared_secret_len) <= 0) {
-        return 0;
-    }
-
-    *ciphertext = OPENSSL_malloc(*ciphertext_len);
-    *shared_secret = OPENSSL_malloc(*shared_secret_len);
-
-    if (*ciphertext == NULL || *shared_secret == NULL) {
-        OPENSSL_free(*ciphertext);
-        OPENSSL_free(*shared_secret);
-        *ciphertext = NULL;
-        *shared_secret = NULL;
-        return 0;
-    }
-
-    return 1;
-}
-
 int oqs_kem_encapsulate(EVP_PKEY *public_key,
                         unsigned char **ciphertext, size_t *ciphertext_len,
                         unsigned char **shared_secret, size_t *shared_secret_len) {
     EVP_PKEY_CTX *ctx = NULL;
+    unsigned char *ciphertext_buf = NULL;
+    unsigned char *shared_secret_buf = NULL;
+    size_t ciphertext_buf_len = 0;
+    size_t shared_secret_buf_len = 0;
     int ret = 0;
 
     if (public_key == NULL || ciphertext == NULL || ciphertext_len == NULL ||
@@ -92,18 +70,10 @@ int oqs_kem_encapsulate(EVP_PKEY *public_key,
         return 0;
     }
 
-    if (ciphertext != NULL) {
-        *ciphertext = NULL;
-    }
-    if (shared_secret != NULL) {
-        *shared_secret = NULL;
-    }
-    if (ciphertext_len != NULL) {
-        *ciphertext_len = 0;
-    }
-    if (shared_secret_len != NULL) {
-        *shared_secret_len = 0;
-    }
+    *ciphertext = NULL;
+    *shared_secret = NULL;
+    *ciphertext_len = 0;
+    *shared_secret_len = 0;
 
     ctx = EVP_PKEY_CTX_new_from_pkey(NULL, public_key, NULL);
     if (ctx == NULL) {
@@ -114,32 +84,32 @@ int oqs_kem_encapsulate(EVP_PKEY *public_key,
         goto cleanup;
     }
 
-    if (!oqs_kem_prepare_output(ctx, ciphertext, ciphertext_len, shared_secret, shared_secret_len)) {
+    if (EVP_PKEY_encapsulate(ctx, NULL, &ciphertext_buf_len, NULL, &shared_secret_buf_len) <= 0) {
         goto cleanup;
     }
 
-    if (EVP_PKEY_encapsulate(ctx, ciphertext, ciphertext_len, shared_secret, shared_secret_len) <= 0) {
+    ciphertext_buf = OPENSSL_malloc(ciphertext_buf_len);
+    shared_secret_buf = OPENSSL_malloc(shared_secret_buf_len);
+    if (ciphertext_buf == NULL || shared_secret_buf == NULL) {
         goto cleanup;
     }
+
+    if (EVP_PKEY_encapsulate(ctx, ciphertext_buf, &ciphertext_buf_len,
+                             shared_secret_buf, &shared_secret_buf_len) <= 0) {
+        goto cleanup;
+    }
+
+    *ciphertext = ciphertext_buf;
+    *shared_secret = shared_secret_buf;
+    *ciphertext_len = ciphertext_buf_len;
+    *shared_secret_len = shared_secret_buf_len;
 
     ret = 1;
 
 cleanup:
     if (!ret) {
-        if (ciphertext != NULL && *ciphertext != NULL) {
-            OPENSSL_free(*ciphertext);
-            *ciphertext = NULL;
-        }
-        if (shared_secret != NULL && *shared_secret != NULL) {
-            OPENSSL_free(*shared_secret);
-            *shared_secret = NULL;
-        }
-        if (ciphertext_len != NULL) {
-            *ciphertext_len = 0;
-        }
-        if (shared_secret_len != NULL) {
-            *shared_secret_len = 0;
-        }
+        OPENSSL_free(ciphertext_buf);
+        OPENSSL_free(shared_secret_buf);
     }
 
     EVP_PKEY_CTX_free(ctx);
@@ -150,6 +120,8 @@ int oqs_kem_decapsulate(EVP_PKEY *keypair,
                         const unsigned char *ciphertext, size_t ciphertext_len,
                         unsigned char **shared_secret, size_t *shared_secret_len) {
     EVP_PKEY_CTX *ctx = NULL;
+    unsigned char *shared_secret_buf = NULL;
+    size_t shared_secret_buf_len = 0;
     int ret = 0;
 
     if (keypair == NULL || ciphertext == NULL || shared_secret == NULL || shared_secret_len == NULL) {
@@ -168,30 +140,26 @@ int oqs_kem_decapsulate(EVP_PKEY *keypair,
         goto cleanup;
     }
 
-    if (EVP_PKEY_decapsulate(ctx, NULL, shared_secret_len, ciphertext, ciphertext_len) <= 0) {
+    if (EVP_PKEY_decapsulate(ctx, NULL, &shared_secret_buf_len, ciphertext, ciphertext_len) <= 0) {
         goto cleanup;
     }
 
-    *shared_secret = OPENSSL_malloc(*shared_secret_len);
-    if (*shared_secret == NULL) {
+    shared_secret_buf = OPENSSL_malloc(shared_secret_buf_len);
+    if (shared_secret_buf == NULL) {
         goto cleanup;
     }
 
-    if (EVP_PKEY_decapsulate(ctx, shared_secret, shared_secret_len, ciphertext, ciphertext_len) <= 0) {
+    if (EVP_PKEY_decapsulate(ctx, shared_secret_buf, &shared_secret_buf_len, ciphertext, ciphertext_len) <= 0) {
         goto cleanup;
     }
 
+    *shared_secret = shared_secret_buf;
+    *shared_secret_len = shared_secret_buf_len;
     ret = 1;
 
 cleanup:
     if (!ret) {
-        if (shared_secret != NULL && *shared_secret != NULL) {
-            OPENSSL_free(*shared_secret);
-            *shared_secret = NULL;
-        }
-        if (shared_secret_len != NULL) {
-            *shared_secret_len = 0;
-        }
+        OPENSSL_free(shared_secret_buf);
     }
 
     EVP_PKEY_CTX_free(ctx);
