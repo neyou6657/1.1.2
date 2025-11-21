@@ -145,6 +145,20 @@ sudo make install  # 确保 uci.so 安装到 ${OPENSSLDIR}/ossl-modules
 
 如果不希望立即安装，可以在运行前设置 `OPENSSL_MODULES=$(pwd)`，让 OpenSSL 从当前构建目录加载 `uci.so`。
 
+### 使用 Docker 一键构建与测试
+
+我们提供了 `Dockerfile` 用于在隔离环境中完成依赖安装、克隆 LibOQS/GmSSL、构建 UCI 并执行测试：
+
+```bash
+docker build -t uci-ci .
+```
+
+镜像构建过程中若有任何一步失败（依赖下载、LibOQS/GmSSL 构建、UCI 构建或 `ctest`），Docker 会立即中断，便于快速定位问题。构建完成后可按需进入容器：
+
+```bash
+docker run -it --rm uci-ci
+```
+
 ### 构建项目
 
 #### 方法1: 使用自动构建脚本（推荐）
