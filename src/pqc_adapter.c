@@ -274,103 +274,103 @@ static int pqc_kem_decaps(const char *alg_name, const uci_keypair_t *keypair,
 }
 
 int pqc_dilithium2_keygen(uci_keypair_t *keypair) {
-    return pqc_sig_keygen(OQS_SIG_alg_dilithium_2, keypair);
+    return pqc_sig_keygen("Dilithium2", keypair);
 }
 
 int pqc_dilithium2_sign(const uci_keypair_t *keypair, const uint8_t *message,
                         size_t message_len, uci_signature_t *signature) {
-    return pqc_sig_sign(OQS_SIG_alg_dilithium_2, keypair, message, message_len, signature);
+    return pqc_sig_sign("Dilithium2", keypair, message, message_len, signature);
 }
 
 int pqc_dilithium2_verify(const uci_keypair_t *keypair, const uint8_t *message,
                           size_t message_len, const uci_signature_t *signature) {
-    return pqc_sig_verify(OQS_SIG_alg_dilithium_2, keypair, message, message_len, signature);
+    return pqc_sig_verify("Dilithium2", keypair, message, message_len, signature);
 }
 
 int pqc_dilithium3_keygen(uci_keypair_t *keypair) {
-    return pqc_sig_keygen(OQS_SIG_alg_dilithium_3, keypair);
+    return pqc_sig_keygen("Dilithium3", keypair);
 }
 
 int pqc_dilithium3_sign(const uci_keypair_t *keypair, const uint8_t *message,
                         size_t message_len, uci_signature_t *signature) {
-    return pqc_sig_sign(OQS_SIG_alg_dilithium_3, keypair, message, message_len, signature);
+    return pqc_sig_sign("Dilithium3", keypair, message, message_len, signature);
 }
 
 int pqc_dilithium3_verify(const uci_keypair_t *keypair, const uint8_t *message,
                           size_t message_len, const uci_signature_t *signature) {
-    return pqc_sig_verify(OQS_SIG_alg_dilithium_3, keypair, message, message_len, signature);
+    return pqc_sig_verify("Dilithium3", keypair, message, message_len, signature);
 }
 
 int pqc_dilithium5_keygen(uci_keypair_t *keypair) {
-    return pqc_sig_keygen(OQS_SIG_alg_dilithium_5, keypair);
+    return pqc_sig_keygen("Dilithium5", keypair);
 }
 
 int pqc_dilithium5_sign(const uci_keypair_t *keypair, const uint8_t *message,
                         size_t message_len, uci_signature_t *signature) {
-    return pqc_sig_sign(OQS_SIG_alg_dilithium_5, keypair, message, message_len, signature);
+    return pqc_sig_sign("Dilithium5", keypair, message, message_len, signature);
 }
 
 int pqc_dilithium5_verify(const uci_keypair_t *keypair, const uint8_t *message,
                           size_t message_len, const uci_signature_t *signature) {
-    return pqc_sig_verify(OQS_SIG_alg_dilithium_5, keypair, message, message_len, signature);
+    return pqc_sig_verify("Dilithium5", keypair, message, message_len, signature);
 }
 
 int pqc_falcon512_keygen(uci_keypair_t *keypair) {
-    return pqc_sig_keygen(OQS_SIG_alg_falcon_512, keypair);
+    return pqc_sig_keygen("Falcon-512", keypair);
 }
 
 int pqc_falcon512_sign(const uci_keypair_t *keypair, const uint8_t *message,
                        size_t message_len, uci_signature_t *signature) {
-    return pqc_sig_sign(OQS_SIG_alg_falcon_512, keypair, message, message_len, signature);
+    return pqc_sig_sign("Falcon-512", keypair, message, message_len, signature);
 }
 
 int pqc_falcon512_verify(const uci_keypair_t *keypair, const uint8_t *message,
                          size_t message_len, const uci_signature_t *signature) {
-    return pqc_sig_verify(OQS_SIG_alg_falcon_512, keypair, message, message_len, signature);
+    return pqc_sig_verify("Falcon-512", keypair, message, message_len, signature);
 }
 
 int pqc_kyber512_keygen(uci_keypair_t *keypair) {
-    return pqc_kem_keygen(OQS_KEM_alg_kyber_512, keypair);
+    return pqc_kem_keygen("Kyber512", keypair);
 }
 
 int pqc_kyber512_encaps(const uci_keypair_t *keypair, uci_kem_encaps_result_t *result) {
-    return pqc_kem_encaps(OQS_KEM_alg_kyber_512, keypair, result);
+    return pqc_kem_encaps("Kyber512", keypair, result);
 }
 
 int pqc_kyber512_decaps(const uci_keypair_t *keypair, const uint8_t *ciphertext,
                         size_t ciphertext_len, uint8_t *shared_secret,
                         size_t *shared_secret_len) {
-    return pqc_kem_decaps(OQS_KEM_alg_kyber_512, keypair, ciphertext, ciphertext_len,
+    return pqc_kem_decaps("Kyber512", keypair, ciphertext, ciphertext_len,
                           shared_secret, shared_secret_len);
 }
 
 int pqc_kyber768_keygen(uci_keypair_t *keypair) {
-    return pqc_kem_keygen(OQS_KEM_alg_kyber_768, keypair);
+    return pqc_kem_keygen("Kyber768", keypair);
 }
 
 int pqc_kyber768_encaps(const uci_keypair_t *keypair, uci_kem_encaps_result_t *result) {
-    return pqc_kem_encaps(OQS_KEM_alg_kyber_768, keypair, result);
+    return pqc_kem_encaps("Kyber768", keypair, result);
 }
 
 int pqc_kyber768_decaps(const uci_keypair_t *keypair, const uint8_t *ciphertext,
                         size_t ciphertext_len, uint8_t *shared_secret,
                         size_t *shared_secret_len) {
-    return pqc_kem_decaps(OQS_KEM_alg_kyber_768, keypair, ciphertext, ciphertext_len,
+    return pqc_kem_decaps("Kyber768", keypair, ciphertext, ciphertext_len,
                           shared_secret, shared_secret_len);
 }
 
 int pqc_kyber1024_keygen(uci_keypair_t *keypair) {
-    return pqc_kem_keygen(OQS_KEM_alg_kyber_1024, keypair);
+    return pqc_kem_keygen("Kyber1024", keypair);
 }
 
 int pqc_kyber1024_encaps(const uci_keypair_t *keypair, uci_kem_encaps_result_t *result) {
-    return pqc_kem_encaps(OQS_KEM_alg_kyber_1024, keypair, result);
+    return pqc_kem_encaps("Kyber1024", keypair, result);
 }
 
 int pqc_kyber1024_decaps(const uci_keypair_t *keypair, const uint8_t *ciphertext,
                          size_t ciphertext_len, uint8_t *shared_secret,
                          size_t *shared_secret_len) {
-    return pqc_kem_decaps(OQS_KEM_alg_kyber_1024, keypair, ciphertext, ciphertext_len,
+    return pqc_kem_decaps("Kyber1024", keypair, ciphertext, ciphertext_len,
                           shared_secret, shared_secret_len);
 }
 
