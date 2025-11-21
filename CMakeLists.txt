@@ -56,10 +56,10 @@ endif()
 
 if(USE_GMSSL)
     find_path(GMSSL_INCLUDE_DIR gmssl/sm2.h
-        HINTS ${CMAKE_SOURCE_DIR}/libs/GmSSL/include
+        HINTS ${CMAKE_SOURCE_DIR}/libs/GmSSL/include /workspace/libs/GmSSL/include
     )
     find_library(GMSSL_LIBRARY gmssl
-        HINTS ${CMAKE_SOURCE_DIR}/libs/GmSSL/build/lib
+        HINTS ${CMAKE_SOURCE_DIR}/libs/GmSSL/build/lib ${CMAKE_SOURCE_DIR}/libs/GmSSL/build/bin /workspace/libs/GmSSL/lib /workspace/libs/GmSSL/bin
     )
     
     if(GMSSL_INCLUDE_DIR AND GMSSL_LIBRARY)

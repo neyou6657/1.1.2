@@ -106,15 +106,12 @@ int classic_sm2_keygen(uci_keypair_t *keypair) {
         return UCI_ERROR_INTERNAL;
     }
     
-    SM2_POINT public_point;
-    sm2_key_get_public_key(&sm2_key, &public_point);
-    
-    uint8_t private_key_bytes[32];
-    sm2_key_get_private_key(&sm2_key, private_key_bytes);
+    SM2_Z256_POINT public_point;
+    memcpy(&public_point, &sm2_key.public_key, sizeof(SM2_Z256_POINT));
     
     keypair->public_key[0] = 0x04;
-    memcpy(keypair->public_key + 1, &public_point, 64);
-    memcpy(keypair->private_key, private_key_bytes, 32);
+    sm2_z256_point_to_bytes(&public_point, keypair->public_key + 1);
+    memcpy(keypair->private_key, sm2_key.private_key, 32);
     
     keypair->public_key_len = 65;
     keypair->private_key_len = 32;
@@ -125,36 +122,32 @@ int classic_sm2_keygen(uci_keypair_t *keypair) {
 int classic_sm2_sign(const uci_keypair_t *keypair, const uint8_t *message,
                      size_t message_len, uci_signature_t *signature) {
     SM2_KEY sm2_key;
-    SM2_SIGNATURE sig;
     SM3_CTX sm3_ctx;
     uint8_t dgst[32];
+    uint8_t sig_buf[SM2_signature_typical_size];
+    size_t siglen = sizeof(sig_buf);
     
-    sm2_key_set_private_key(&sm2_key, keypair->private_key);
+    sm2_key_set_private_key(&sm2_key, (sm2_z256_t*)keypair->private_key);
     
-    SM2_POINT public_point;
-    memcpy(&public_point, keypair->public_key + 1, 64);
+    SM2_Z256_POINT public_point;
+    sm2_z256_point_from_bytes(&public_point, keypair->public_key + 1);
     sm2_key_set_public_key(&sm2_key, &public_point);
     
     sm3_init(&sm3_ctx);
     sm3_update(&sm3_ctx, message, message_len);
     sm3_finish(&sm3_ctx, dgst);
     
-    if (sm2_sign(&sm2_key, dgst, &sig) != 1) {
+    if (sm2_sign(&sm2_key, dgst, sig_buf, &siglen) != 1) {
         return UCI_ERROR_INTERNAL;
     }
     
-    signature->data = (uint8_t *)malloc(SM2_signature_typical_size);
+    signature->data = (uint8_t *)malloc(siglen);
     if (!signature->data) {
         return UCI_ERROR_INTERNAL;
     }
     
-    uint8_t *p = signature->data;
-    if (sm2_signature_to_der(&sig, &p) <= 0) {
-        free(signature->data);
-        return UCI_ERROR_INTERNAL;
-    }
-    
-    signature->data_len = p - signature->data;
+    memcpy(signature->data, sig_buf, siglen);
+    signature->data_len = siglen;
     
     return UCI_SUCCESS;
 }
@@ -162,24 +155,18 @@ int classic_sm2_sign(const uci_keypair_t *keypair, const uint8_t *message,
 int classic_sm2_verify(const uci_keypair_t *keypair, const uint8_t *message,
                        size_t message_len, const uci_signature_t *signature) {
     SM2_KEY sm2_key;
-    SM2_SIGNATURE sig;
     SM3_CTX sm3_ctx;
     uint8_t dgst[32];
     
-    SM2_POINT public_point;
-    memcpy(&public_point, keypair->public_key + 1, 64);
+    SM2_Z256_POINT public_point;
+    sm2_z256_point_from_bytes(&public_point, keypair->public_key + 1);
     sm2_key_set_public_key(&sm2_key, &public_point);
     
     sm3_init(&sm3_ctx);
     sm3_update(&sm3_ctx, message, message_len);
     sm3_finish(&sm3_ctx, dgst);
     
-    const uint8_t *p = signature->data;
-    if (sm2_signature_from_der(&sig, &p, signature->data_len) != 1) {
-        return UCI_ERROR_SIGNATURE_INVALID;
-    }
-    
-    if (sm2_verify(&sm2_key, dgst, &sig) != 1) {
+    if (sm2_verify(&sm2_key, dgst, signature->data, signature->data_len) != 1) {
         return UCI_ERROR_SIGNATURE_INVALID;
     }
     

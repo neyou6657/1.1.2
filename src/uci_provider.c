@@ -90,14 +90,17 @@ static int uci_provider_get_capabilities(void *provctx,
             OSSL_PARAM params[5];
             int idx = 0;
             
+            unsigned int group_id = 0xFE00;
+            unsigned int security_bits = 128;
+            
             params[idx++] = OSSL_PARAM_construct_utf8_string(
                 OSSL_CAPABILITY_TLS_GROUP_NAME, (char *)*g, 0);
             params[idx++] = OSSL_PARAM_construct_utf8_string(
                 OSSL_CAPABILITY_TLS_GROUP_NAME_INTERNAL, (char *)*g, 0);
             params[idx++] = OSSL_PARAM_construct_uint(
-                OSSL_CAPABILITY_TLS_GROUP_ID, (unsigned int[]){0xFE00}, 0);
+                OSSL_CAPABILITY_TLS_GROUP_ID, &group_id);
             params[idx++] = OSSL_PARAM_construct_uint(
-                OSSL_CAPABILITY_TLS_GROUP_SECURITY_BITS, (unsigned int[]){128}, 0);
+                OSSL_CAPABILITY_TLS_GROUP_SECURITY_BITS, &security_bits);
             params[idx] = OSSL_PARAM_construct_end();
             
             if (!cb(params, arg))
